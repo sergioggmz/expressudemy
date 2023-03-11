@@ -1,6 +1,8 @@
 const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
+const {check, validationResult} = require('express-validator');
+app.use(express.json());
 
 const cars = [
     {id: 0, company: 'BMW', model: 'X3', year: '2020'},
@@ -36,4 +38,82 @@ app.get('/api/cars/:company', (req, res) => {
     }
 })
 
+app.post('/api/cars',(req,res) => {
+    const {company,model,year} = req.body;
+
+    const car = {
+        id:cars.length,
+        company,
+        model,
+        year
+    }
+    cars.push(car);
+
+    res.status(201).send(car);
+})
+app.post('/api/cars2',(req,res) => {
+    if(!req.body.company || req.body.company.length < 3) {
+        res.status(400).send('Introduce la empresa correcta')
+    }
+    const {company,model,year} = req.body;
+    const car = {
+        id:cars.length,
+        company,
+        model,
+        year
+    }
+    cars.push(car);
+
+    res.status(201).send(car);
+})
+
+app.post('/api/cars3',[
+    check('company').isLength({min:3}),
+    check('model').isLength({min:3})
+],(req,res) => {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+        return res.status(422).json({errors:errors.array()})
+    }
+    const {company,model,year} = req.body;
+    const car = {
+        id:cars.length,
+        company,
+        model,
+        year
+    }
+    cars.push(car);
+
+    return res.status(201).send(car);
+})
+
+app.put('/api/cars/:id',[
+    check('company').isLength({min:3}),
+    check('model').isLength({min:3})
+],(req,res) => {
+    const errors = validationResult(req);
+    if(!errors.isEmpty()) {
+        return res.status(422).json({errors:errors.array()})
+    }
+
+    const carFounded = cars.find(cr => cr.id === parseInt(req.params['id']))
+    if(!carFounded) {
+        return res.status(404).send('El coche con ese id no está');
+    }
+    const {company,model,year} = req.body;
+    carFounded.company = company;
+    carFounded.model = model;
+    carFounded.year = year;
+
+    return res.status(204).send(carFounded);
+})
+app.delete('/api/cars/:id', (req,res) => {
+    const carFounded = cars.find(cr => cr.id === parseInt(req.params['id']))
+    if(!carFounded) {
+        return res.status(404).send('El coche con ese id no está, no se puede borrar');
+    }
+    const index = cars.indexOf(carFounded);
+    cars.splice(index,1);
+    res.status(200).send('coche borrado');
+})
 app.listen(port, () => console.log(`Escuchando puerto ${port}`));
